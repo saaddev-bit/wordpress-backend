@@ -1,0 +1,10 @@
+# Ignore WordPress core files
+wp-admin/
+wp-includes/
+wp-content/uploads/
+wp-content/cache/
+*.log
+
+# Ignore local environment files
+.env
+*.sql
