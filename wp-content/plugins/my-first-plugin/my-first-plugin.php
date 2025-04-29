@@ -13,6 +13,15 @@ function mfp_activate() {
 }
 register_activation_hook( __FILE__, 'mfp_activate' );
 
+
+function mfp_shortcode() {
+    return 'Hello, this is my first plugin!';
+}
+add_shortcode( 'mfp_hello', 'mfp_shortcode' );
+
+
+
+
 //Deactivation Hook
 function mfp_deactivate() {
     error_log( 'My First Plugin deactivated' );
