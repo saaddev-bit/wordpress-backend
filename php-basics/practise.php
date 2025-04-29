@@ -14,5 +14,11 @@ function greet($name){
 }
 echo greet('Saad');
 
+function list_number($limit) {
+    for ($i = 1; $i <= $limit; $i++) {
+        echo "$i<br>";
+    }
+}
+list_number(10);
 
 ?>
