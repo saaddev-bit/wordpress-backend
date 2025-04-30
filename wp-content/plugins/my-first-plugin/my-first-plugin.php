@@ -88,7 +88,7 @@ register_deactivation_hook( __FILE__, 'mfp_deactivate' );
     if (isset ($_POST['mfp_submit'])) {
         mfp_process_form();
     }
-    return ob_get_clean();
+    return ob_get_clean() ;
  }
 add_shortcode( 'mfp_contact_form', 'mfp_contact_form_shortcode' );
 
