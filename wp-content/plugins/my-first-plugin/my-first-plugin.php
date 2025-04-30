@@ -44,9 +44,6 @@ function mfp_insert_data($data) {
         ['%s']
     );
 }
-add_action( 'init' , function() {
-    mfp_insert_data('Test data');
-});
 
 /**
  * Shortcode to display a hello message.
@@ -66,3 +63,59 @@ function mfp_deactivate() {
     error_log( 'My First Plugin deactivated' );
 }
 register_deactivation_hook( __FILE__, 'mfp_deactivate' );
+
+
+
+/**
+ * Renders a secure contact form.
+ *
+ * @param array $atts Shortcode attributes.
+ * @return string The form HTML.
+ */
+
+ function mfp_contact_form_shortcode($atts) {
+    ob_start();
+    ?>
+    <form method="post" action="">
+        <?php wp_nonce_field( 'mfp_contact_form', 'mfp_nonce' ); ?>
+        <label for="mfp_name">Name: </label>
+        <input type="text" id="mfp_name" name="mfp_name" required>
+        <label for="mfp_message">Message:</label>
+        <textarea id="mfp_message" name="mfp_message" required></textarea>
+        <input type="submit" name="mfp_submit" value="Submit">
+    </form>
+    <?php 
+    if (isset ($_POST['mfp_submit'])) {
+        mfp_process_form();
+    }
+    return ob_get_clean();
+ }
+add_shortcode( 'mfp_contact_form', 'mfp_contact_form_shortcode' );
+
+
+/**
+ * Processes the contact form submission.
+ */
+
+
+ function mfp_process_form() {
+    if ( !isset ( $_POST['mfp_nonce']) || ! wp_verify_nonce( $_POST['mfp_nonce'], 'mfp_contact_form' )){
+        echo '<p>Security check failed!</p>';
+        return;
+    }
+
+    $name = isset( $_POST['mfp_name'] ) ? sanitize_text_field( wp_unslash( $_POST['mfp_name'] ) ) : '';
+    $message = isset( $_POST['mfp_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['mfp_message'] ) ) : '';
+
+    if ( empty( $name ) || empty( $message ) ) {
+        echo '<p>Please fill out all fields.</p>';
+        return;
+    }
+
+    $data = "Name: $name, Message: $message";
+    if( mfp_insert_data( $data)){
+        echo '<p>Form Submitted Successfully!!</p>';
+    } else {
+        echo '<p>Error submitting form.</p>';
+    }
+ }
