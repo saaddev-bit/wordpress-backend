@@ -354,10 +354,19 @@ function mfp_settings_page_callback() {
     $table_name  = $wpdb->prefix . 'mfp_data';
     $submissions = $wpdb->get_results( "SELECT * FROM $table_name ORDER BY created_at DESC LIMIT 10" );
 
+    // Query Projects
+    $args = [
+        'post_type'      => 'mfp_project',
+        'posts_per_page' => 10,
+        'post_status'    => 'publish',
+    ];
+    $projects_query = new WP_Query( $args );
+
     ?>
     <div class="wrap">
         <h1>My First Plugin Settings</h1>
         <p>Welcome to the settings page for My First Plugin.</p>
+
         <h2>Form Submissions</h2>
         <?php
         if ( $submissions ) {
@@ -383,9 +392,125 @@ function mfp_settings_page_callback() {
             echo '<p>No submissions found.</p>';
         }
         ?>
+
+        <h2>Manage Projects</h2>
+        <?php
+        if ( $projects_query->have_posts() ) {
+            ?>
+            <table class="wp-list-table widefat fixed striped mfp-projects-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Project URL</th>
+                        <th>Client Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    while ( $projects_query->have_posts() ) {
+                        $projects_query->the_post();
+                        $project_url = get_post_meta( get_the_ID(), 'mfp_project_url', true );
+                        $client_name = get_post_meta( get_the_ID(), 'mfp_client_name', true );
+                        ?>
+                        <tr data-project-id="<?php echo esc_attr( get_the_ID() ); ?>">
+                            <td><?php the_title(); ?></td>
+                            <td><?php echo esc_html( $project_url ); ?></td>
+                            <td><?php echo esc_html( $client_name ); ?></td>
+                            <td>
+                                <a href="#" class="mfp-edit-project">Edit</a>
+                            </td>
+                        </tr>
+                        <?php
+                    }
+                    wp_reset_postdata();
+                    ?>
+                </tbody>
+            </table>
+            <div id="mfp-project-edit-form" style="display: none; margin-top: 20px;">
+                <h3>Edit Project</h3>
+                <form id="mfp-update-project-form">
+                    <input type="hidden" id="mfp-project-id" name="project_id">
+                    <p>
+                        <label for="mfp-edit-project-url">Project URL:</label><br>
+                        <input type="url" id="mfp-edit-project-url" name="project_url" style="width: 100%;">
+                    </p>
+                    <p>
+                        <label for="mfp-edit-client-name">Client Name:</label><br>
+                        <input type="text" id="mfp-edit-client-name" name="client_name" style="width: 100%;">
+                    </p>
+                    <p>
+                        <button type="submit" class="button button-primary">Update Project</button>
+                        <button type="button" id="mfp-cancel-edit" class="button">Cancel</button>
+                    </p>
+                </form>
+            </div>
+            <?php
+        } else {
+            echo '<p>No projects found.</p>';
+        }
+        ?>
     </div>
     <?php
 }
+
+/**
+ * Enqueues admin scripts and styles for the plugin.
+ */
+function mfp_enqueue_admin_scripts() {
+    if ( isset( $_GET['page'] ) && $_GET['page'] === 'mfp-settings' ) {
+        wp_enqueue_script(
+            'mfp-admin-scripts',
+            plugin_dir_url( __FILE__ ) . 'assets/mfp-admin-scripts.js',
+            [ 'jquery' ],
+            '1.0',
+            true
+        );
+
+        wp_localize_script(
+            'mfp-admin-scripts',
+            'mfpAjax',
+            [
+                'ajaxurl' => admin_url( 'admin-ajax.php' ),
+                'nonce'   => wp_create_nonce( 'mfp_update_project' ),
+            ]
+        );
+    }
+}
+add_action( 'admin_enqueue_scripts', 'mfp_enqueue_admin_scripts' );
+
+/**
+ * Handles AJAX request to update project meta data.
+ */
+function mfp_update_project() {
+    // Verify nonce
+    check_ajax_referer( 'mfp_update_project', 'nonce' );
+
+    // Check user permissions
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( [ 'message' => 'Insufficient permissions.' ] );
+    }
+
+    // Validate input
+    $project_id = isset( $_POST['project_id'] ) ? intval( $_POST['project_id'] ) : 0;
+    $project_url = isset( $_POST['project_url'] ) ? sanitize_text_field( $_POST['project_url'] ) : '';
+    $client_name = isset( $_POST['client_name'] ) ? sanitize_text_field( $_POST['client_name'] ) : '';
+
+    if ( ! $project_id || 'mfp_project' !== get_post_type( $project_id ) ) {
+        wp_send_json_error( [ 'message' => 'Invalid project ID.' ] );
+    }
+
+    if ( $project_url && ! filter_var( $project_url, FILTER_VALIDATE_URL ) ) {
+        wp_send_json_error( [ 'message' => 'Invalid Project URL.' ] );
+    }
+
+    // Update meta fields
+    update_post_meta( $project_id, 'mfp_project_url', $project_url );
+    update_post_meta( $project_id, 'mfp_client_name', $client_name );
+
+    wp_send_json_success( [ 'message' => 'Project updated successfully.' ] );
+}
+add_action( 'wp_ajax_mfp_update_project', 'mfp_update_project' );
 
 /**
  * Adds a custom dashboard widget.
