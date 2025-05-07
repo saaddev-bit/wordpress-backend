@@ -1,0 +1,19 @@
+.mfp-projects {
+    margin: 20px 0;
+}
+.mfp-projects .project {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.mfp-load-more {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #0073aa;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+}
+.mfp-load-more:hover {
+    background: #005d87;
+}
